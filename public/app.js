@@ -57,21 +57,18 @@ const RESET_INPUTS = [
   { input: "20", label: "Plano general" }
 ];
 const UTC_OVERLAYS = [
-  { input: "150", label: "BJ30", slot: "4" },
   { input: "161", label: "Campos Hermanos", slot: "4" },
-  { input: "175", label: "Pringles 144 Aniversario", slot: "4" },
+  { input: "175", label: "Chicken Milanesas", slot: "4" },
   { input: "155", label: "DM Group", slot: "4" },
   { input: "164", label: "Gatiperry", slot: "4" },
   { input: "158", label: "Hipertehuelche", slot: "4" },
   { input: "154", label: "INCOB", slot: "4" },
-  { input: "162", label: "Key Mex", slot: "4" },
   { input: "159", label: "La Portuaria", slot: "4" },
   { input: "156", label: "Libreria Mil Hojas", slot: "4" },
   { input: "170", label: "LEX", slot: "4" },
   { input: "160", label: "MGB", slot: "4" },
   { input: "163", label: "Pariz Clothes", slot: "4" },
   { input: "165", label: "Programa Puente BSAS", slot: "4" },
-  { input: "166", label: "HARD DEALER", slot: "4" },
   { input: "157", label: "Pintureria Tricolor", slot: "4" },
   { input: "153", label: "Sonia Gamero", slot: "4" }
 ];
