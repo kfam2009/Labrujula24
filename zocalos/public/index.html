@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Panel Zocalos - La Brujula</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">La Brujula</p>
+          <h1>Zocalos</h1>
+        </div>
+        <div class="connection">
+          <span id="connectionDot" class="connection-dot"></span>
+          <span id="connectionText">Conectando...</span>
+        </div>
+      </header>
+
+      <section class="zocalo-layout" aria-label="Zocalos">
+        <article class="zocalo-box" data-zocalo-input="143">
+          <div class="zocalo-head">
+            <div>
+              <p class="eyebrow">Input 143</p>
+              <h2>Zocalo 1</h2>
+            </div>
+            <select data-zocalo-slot="143" aria-label="Overlay zocalo 1"></select>
+          </div>
+
+          <div class="select-shell">
+            <button type="button" class="selected-title" data-zocalo-toggle="143">
+              <span data-zocalo-current="143">Seleccionar titulo</span>
+              <span class="chevron">v</span>
+            </button>
+            <div class="list-panel" data-zocalo-panel="143" hidden>
+              <div class="editable-list" data-zocalo-list="143"></div>
+              <button type="button" class="add-button" data-zocalo-add="143">+</button>
+            </div>
+          </div>
+
+          <button type="button" class="air-button" data-zocalo-air="143">ON / OFF</button>
+        </article>
+
+        <article class="zocalo-box" data-zocalo-input="124">
+          <div class="zocalo-head">
+            <div>
+              <p class="eyebrow">Input 124</p>
+              <h2>Zocalo 2</h2>
+            </div>
+            <select data-zocalo-slot="124" aria-label="Overlay zocalo 2"></select>
+          </div>
+
+          <div class="select-shell">
+            <button type="button" class="selected-title" data-zocalo-toggle="124">
+              <span data-zocalo-current="124">Seleccionar titulo</span>
+              <span class="chevron">v</span>
+            </button>
+            <div class="list-panel" data-zocalo-panel="124" hidden>
+              <div class="editable-list" data-zocalo-list="124"></div>
+              <button type="button" class="add-button" data-zocalo-add="124">+</button>
+            </div>
+          </div>
+
+          <button type="button" class="air-button" data-zocalo-air="124">ON / OFF</button>
+        </article>
+      </section>
+
+      <footer class="statusbar">
+        <span id="logLine">Listo.</span>
+      </footer>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

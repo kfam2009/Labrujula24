@@ -1,0 +1,22 @@
+Panel La Brujula - SOLO ZOCALOS
+
+Esta carpeta contiene una version liviana del panel con solo la pantalla de zocalos.
+
+Archivos importantes:
+- server.js: servidor local y proxy hacia vMix.
+- public/index.html: pantalla de zocalos.
+- public/app.js: logica de busqueda, edicion, ON y OFF.
+- public/styles.css: estilos.
+- runtime/node.exe: Node portable para ejecutar sin instalar Node.
+
+Arranque local en la PC de vMix:
+- Doble click en "Abrir Zocalos Local.cmd"
+- URL: http://localhost:3010
+
+Arranque por ZeroTier hacia la PC remota:
+- Doble click en "Abrir Zocalos por ZeroTier.cmd"
+- URL: http://localhost:3010
+
+Inputs actuales:
+- Zocalo 1: input 143, Overlay 2 por defecto.
+- Zocalo 2: input 124, Overlay 1 por defecto.
