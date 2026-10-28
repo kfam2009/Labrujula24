@@ -1,0 +1,11 @@
+# Binarios portables: se agregan a mano en la PC (ver README)
+runtime/
+tools/
+node_modules/
+# Pesados / temporales
+*.mov
+*.mp4
+*.zip
+*.rar
+*.log
+*.lnk
