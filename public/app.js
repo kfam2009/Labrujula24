@@ -55,6 +55,7 @@ const UTC_OVERLAYS = [
   { input: "162", label: "Key Mex", slot: "4" },
   { input: "159", label: "La Portuaria", slot: "4" },
   { input: "156", label: "Libreria Mil Hojas", slot: "4" },
+  { input: "170", label: "LEX", slot: "4" },
   { input: "160", label: "MGB", slot: "4" },
   { input: "163", label: "Pariz Clothes", slot: "4" },
   { input: "165", label: "Programa Puente BSAS", slot: "4" },
@@ -135,6 +136,8 @@ const DEFAULT_ZOCALOS = {
 const LOGO_INPUT = "141";
 const LOGO_FIELD = "Image1.Source";
 const LOGO_STORAGE_KEY = "selectedLogoPath";
+const MODO_SABADO_LOGO_PATH = "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\modo_sabado_logo_logo.png";
+const MODO_SABADO_LOGO_INPUT = "167";
 const LOGO_LIST = [
   "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\amo viajar_logo.png",
   "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\bahia hoy_logo.png",
@@ -148,7 +151,8 @@ const LOGO_LIST = [
   "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\nunca es tarde_logo.png",
   "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\ingenierowhite_logo.png",
   "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\peña_de_homero_logo.png",
-  "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\irresponsables_logo.png"
+  "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\irresponsables_logo.png",
+  MODO_SABADO_LOGO_PATH
 ];
 const PHOTO_STORAGE_KEY = "insertPhotoList";
 const PHOTO_SELECTED_KEY = "selectedInsertPhotoIndex";
@@ -205,7 +209,6 @@ const RADIO_CAMERA_INPUTS = ["1", "2", "3", "4", "5"];
 const RADIO_STORAGE_KEY = "radioMultiviewAssignments";
 let lastExternal2Preview = "";
 let selectedRadioLayout = "6";
-let amoViajarUpload = null;
 
 const els = {
   programFeed: document.querySelector("#programFeed"),
@@ -222,13 +225,6 @@ const els = {
   photoList: document.querySelector("#photoList"),
   photoPathInput: document.querySelector("#photoPathInput"),
   photoAddButton: document.querySelector("#photoAddButton"),
-  amoViajarFile: document.querySelector("#amoViajarFile"),
-  amoViajarSend: document.querySelector("#amoViajarSend"),
-  amoViajarProgress: document.querySelector("#amoViajarProgress"),
-  amoViajarProgressFill: document.querySelector("#amoViajarProgressFill"),
-  amoViajarStatus: document.querySelector("#amoViajarStatus"),
-  amoViajarPlay: document.querySelector("#amoViajarPlay"),
-  amoViajarRemove: document.querySelector("#amoViajarRemove"),
   radioMultiviewLayouts: document.querySelector("#radioMultiviewLayouts"),
   radioMultiviewGrid: document.querySelector("#radioMultiviewGrid"),
   radioMultiviewStatus: document.querySelector("#radioMultiviewStatus"),
@@ -332,155 +328,19 @@ async function callVmix(params = {}) {
 
 async function runFunction(functionName, input) {
   const params = { Function: functionName };
+  let resolvedInput = input;
 
-  if (input) {
-    params.Input = input;
+  if (functionName === "OverlayInput3In" && input === LOGO_INPUT && selectedLogoPath() === MODO_SABADO_LOGO_PATH) {
+    resolvedInput = MODO_SABADO_LOGO_INPUT;
+  }
+
+  if (resolvedInput) {
+    params.Input = resolvedInput;
   }
 
   await callVmix(params);
-  setLog(`${functionName}${input ? ` input ${input}` : ""}`);
+  setLog(`${functionName}${resolvedInput ? ` input ${resolvedInput}` : ""}`);
   await refreshState();
-}
-
-function setAmoViajarProgress(percent) {
-  const safePercent = Math.max(0, Math.min(100, Number(percent) || 0));
-
-  if (els.amoViajarProgress) {
-    els.amoViajarProgress.hidden = false;
-  }
-
-  if (els.amoViajarProgressFill) {
-    els.amoViajarProgressFill.style.width = `${safePercent}%`;
-  }
-}
-
-function uploadAmoViajarFile() {
-  const file = els.amoViajarFile?.files?.[0];
-
-  if (!file || !file.name.toLowerCase().endsWith(".mp4")) {
-    if (els.amoViajarStatus) {
-      els.amoViajarStatus.textContent = "Selecciona un archivo MP4 valido.";
-    }
-    return;
-  }
-
-  els.amoViajarSend.disabled = true;
-  els.amoViajarFile.disabled = true;
-  els.amoViajarPlay.disabled = true;
-  els.amoViajarRemove.disabled = true;
-  setAmoViajarProgress(0);
-  els.amoViajarStatus.textContent = `Subiendo ${file.name}...`;
-
-  const request = new XMLHttpRequest();
-  request.open("POST", "/amo-viajar/upload");
-  request.setRequestHeader("Content-Type", "application/octet-stream");
-  request.setRequestHeader("X-File-Name", encodeURIComponent(file.name));
-
-  request.upload.addEventListener("progress", (event) => {
-    if (!event.lengthComputable) {
-      return;
-    }
-
-    const percent = Math.round((event.loaded / event.total) * 100);
-    setAmoViajarProgress(percent);
-    els.amoViajarStatus.textContent = `Subiendo ${file.name}: ${percent}%`;
-  });
-
-  request.addEventListener("load", () => {
-    let result = {};
-
-    try {
-      result = JSON.parse(request.responseText || "{}");
-    } catch {
-      result = {};
-    }
-
-    if (request.status >= 200 && request.status < 300) {
-      amoViajarUpload = {
-        inputNumber: String(result.inputNumber),
-        fileName: result.fileName || file.name
-      };
-      setAmoViajarProgress(100);
-      els.amoViajarStatus.textContent = `${result.fileName || file.name} agregado como input ${result.inputNumber}. Audio en Bus A.`;
-      setLog(`Amo Viajar: input ${result.inputNumber}, Bus A`);
-      refreshState();
-      return;
-    }
-
-    els.amoViajarStatus.textContent = result.error || `No pude cargar el archivo (HTTP ${request.status}).`;
-  });
-
-  request.addEventListener("error", () => {
-    els.amoViajarStatus.textContent = "Se corto la conexion durante la carga.";
-  });
-
-  request.addEventListener("loadend", () => {
-    els.amoViajarFile.disabled = false;
-    els.amoViajarSend.disabled = !els.amoViajarFile.files?.length;
-    els.amoViajarPlay.disabled = !amoViajarUpload;
-    els.amoViajarRemove.disabled = !amoViajarUpload;
-  });
-
-  request.send(file);
-}
-
-async function playAmoViajarOnAir() {
-  if (!amoViajarUpload) {
-    return;
-  }
-
-  const inputNumber = amoViajarUpload.inputNumber;
-  els.amoViajarPlay.disabled = true;
-  els.amoViajarRemove.disabled = true;
-
-  try {
-    await callVmix({ Function: "Restart", Input: inputNumber });
-    await callVmix({ Function: "AudioBusOn", Input: inputNumber, Value: "A" });
-    await callVmix({ Function: "AudioBusOff", Input: inputNumber, Value: "M" });
-    await callVmix({ Function: "CutDirect", Input: inputNumber });
-    await callVmix({ Function: "Play", Input: inputNumber });
-    els.amoViajarStatus.textContent = `${amoViajarUpload.fileName} al aire desde el comienzo. Audio en Bus A.`;
-    setLog(`Amo Viajar al aire: input ${inputNumber}`);
-    await refreshState();
-  } finally {
-    els.amoViajarPlay.disabled = false;
-    els.amoViajarRemove.disabled = false;
-  }
-}
-
-async function removeAmoViajarFromVmix() {
-  if (!amoViajarUpload) {
-    return;
-  }
-
-  const current = amoViajarUpload;
-  els.amoViajarPlay.disabled = true;
-  els.amoViajarRemove.disabled = true;
-
-  try {
-    const query = new URLSearchParams({
-      input: current.inputNumber,
-      file: current.fileName
-    });
-    const response = await fetch(`/amo-viajar/remove?${query.toString()}`, { method: "POST" });
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      throw new Error(result.error || `HTTP ${response.status}`);
-    }
-
-    amoViajarUpload = null;
-    els.amoViajarStatus.textContent = `${current.fileName} eliminado de vMix.`;
-    els.amoViajarFile.value = "";
-    els.amoViajarSend.disabled = true;
-    els.amoViajarProgress.hidden = true;
-    setLog(`Amo Viajar eliminado: input ${current.inputNumber}`);
-    await refreshState();
-  } catch (error) {
-    els.amoViajarStatus.textContent = error.message;
-    els.amoViajarPlay.disabled = false;
-    els.amoViajarRemove.disabled = false;
-  }
 }
 
 function parseInputs(xmlText) {
@@ -720,7 +580,7 @@ function logoLabel(path) {
   return path
     .split("\\")
     .pop()
-    .replace(/_logo\.png$/i, "")
+    .replace(/(?:_logo)+\.png$/i, "")
     .replace(/\.png$/i, "")
     .replace(/_/g, " ");
 }
@@ -1515,6 +1375,12 @@ async function selectLogo(logoPath) {
   localStorage.setItem(LOGO_STORAGE_KEY, logoPath);
   renderLogoList();
 
+  if (logoPath === MODO_SABADO_LOGO_PATH) {
+    setLog(`Logo seleccionado: ${logoLabel(logoPath)}`);
+    await refreshState();
+    return;
+  }
+
   await callVmix({
     Function: "SetImage",
     Input: LOGO_INPUT,
@@ -1729,26 +1595,6 @@ async function syncPreviewExternal2() {
 }
 
 document.addEventListener("click", async (event) => {
-  if (event.target.closest("#amoViajarPlay")) {
-    try {
-      await playAmoViajarOnAir();
-    } catch (error) {
-      els.amoViajarStatus.textContent = error.message;
-      setLog(error.message);
-    }
-    return;
-  }
-
-  if (event.target.closest("#amoViajarRemove")) {
-    await removeAmoViajarFromVmix();
-    return;
-  }
-
-  if (event.target.closest("#amoViajarSend")) {
-    uploadAmoViajarFile();
-    return;
-  }
-
   const directCut = event.target.closest("[data-direct-cut]");
 
   if (directCut) {
@@ -2031,18 +1877,6 @@ document.addEventListener("keydown", async (event) => {
 });
 
 document.addEventListener("change", async (event) => {
-  if (event.target.closest("#amoViajarFile")) {
-    const file = els.amoViajarFile.files?.[0];
-    const isMp4 = Boolean(file?.name.toLowerCase().endsWith(".mp4"));
-    els.amoViajarSend.disabled = !isMp4;
-    els.amoViajarProgress.hidden = true;
-    els.amoViajarProgressFill.style.width = "0%";
-    els.amoViajarStatus.textContent = isMp4
-      ? `${file.name} listo para cargar.`
-      : "Selecciona un archivo MP4 valido.";
-    return;
-  }
-
   const zocaloSlot = event.target.closest("[data-zocalo-slot]");
 
   if (zocaloSlot) {
