@@ -56,6 +56,7 @@
         <button type="button" class="tab-button" data-tab="logos">Logos</button>
         <button type="button" class="tab-button" data-tab="fotos">Fotos</button>
         <button type="button" class="tab-button" data-tab="multiview">Multiview</button>
+        <button type="button" class="tab-button" data-tab="reset">Reset</button>
         <button type="button" class="tab-button" data-tab="amo-viajar">Amo Viajar</button>
         <button type="button" class="tab-button" data-tab="publicidades">Publicidades</button>
       </nav>
@@ -139,10 +140,10 @@
             <div class="logo-list" id="logoList"></div>
           </div>
           <div class="logo-grid">
-            <button type="button" class="sponsor-button logo-button" data-function="OverlayInput3In" data-input="141">
+            <button type="button" class="sponsor-button logo-button" data-logo-action="on">
               Logo ON
             </button>
-            <button type="button" class="sponsor-button logo-button off-button" data-function="OverlayInput3Out">
+            <button type="button" class="sponsor-button logo-button off-button" data-logo-action="off">
               Logo OFF
             </button>
           </div>
@@ -173,6 +174,14 @@
           </div>
           <div class="mv-layout-tabs" id="radioMultiviewLayouts"></div>
           <div class="mv-grid" id="radioMultiviewGrid"></div>
+        </section>
+
+        <section class="control-section reset-panel" data-tab-panel="reset" aria-label="Reset de camaras" hidden>
+          <div class="section-title">
+            <h2>Reset</h2>
+            <span class="multiview-target">Inputs 15 a 20</span>
+          </div>
+          <div class="reset-grid" id="resetGrid"></div>
         </section>
 
         <section class="control-section amo-viajar-panel" data-tab-panel="amo-viajar" aria-label="Amo Viajar" hidden>

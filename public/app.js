@@ -2,6 +2,7 @@ const state = {
   inputs: [],
   active: "",
   preview: "",
+  overlays: {},
   master: {
     left: 0,
     right: 0,
@@ -14,6 +15,7 @@ const state = {
 const monitorRefreshTimers = new Map();
 const zocaloSearchTerms = {};
 let isRefreshingState = false;
+const DISABLE_MONITORS = new URLSearchParams(window.location.search).get("nomonitors") === "1";
 const PREVIEW_MONITOR_URL = "/monitor/preview.mjpg";
 const PROGRAM_MONITOR_URL = "/monitor/program.mjpg";
 const MULTIVIEW_INPUTS = ["12", "13", "14"];
@@ -32,6 +34,7 @@ const DIRECT_CUTS = [
   { input: "29", label: "2 Camaras" },
   { input: "32", label: "3 Camaras" },
   { input: "35", label: "4 Camaras" },
+  { input: "168", label: "4 Camaras + Video" },
   { input: "12", label: "5 Camaras" },
   { input: "105", label: "Call en vivo" },
   { input: "59", label: "Video" },
@@ -44,6 +47,14 @@ const DIRECT_CUTS = [
 const DIRECT_OVERLAY_INPUTS = [
   { slot: "1", input: "124" },
   { slot: "2", input: "143" }
+];
+const RESET_INPUTS = [
+  { input: "15", label: "Camara 1" },
+  { input: "16", label: "Camara 2" },
+  { input: "17", label: "Camara 3" },
+  { input: "18", label: "Camara 4" },
+  { input: "19", label: "Camara 5" },
+  { input: "20", label: "Plano general" }
 ];
 const UTC_OVERLAYS = [
   { input: "150", label: "BJ30", slot: "4" },
@@ -59,9 +70,23 @@ const UTC_OVERLAYS = [
   { input: "160", label: "MGB", slot: "4" },
   { input: "163", label: "Pariz Clothes", slot: "4" },
   { input: "165", label: "Programa Puente BSAS", slot: "4" },
+  { input: "166", label: "HARD DEALER", slot: "4" },
   { input: "157", label: "Pintureria Tricolor", slot: "4" },
   { input: "153", label: "Sonia Gamero", slot: "4" }
 ];
+const UTC_OVERLAY_GROUPS = [
+  {
+    id: "cliente-171-174",
+    label: "Cliente",
+    slot: "4",
+    inputs: ["173", "174"],
+    labels: {
+      "173": "Fiat",
+      "174": "Trailcar"
+    }
+  }
+];
+const UTC_OVERLAY_GROUP_STORAGE_KEY = "utcOverlayGroupSelections";
 const ZOCALO_DEFAULTS_VERSION = "utc-2026-06-08-search";
 const DEFAULT_ZOCALOS = {
   "143": {
@@ -137,7 +162,6 @@ const LOGO_INPUT = "141";
 const LOGO_FIELD = "Image1.Source";
 const LOGO_STORAGE_KEY = "selectedLogoPath";
 const MODO_SABADO_LOGO_PATH = "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\modo_sabado_logo_logo.png";
-const MODO_SABADO_LOGO_INPUT = "167";
 const LOGO_LIST = [
   "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\amo viajar_logo.png",
   "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\bahia hoy_logo.png",
@@ -166,9 +190,16 @@ const PHOTO_MULTIVIEW_SOURCE = "39";
 const PHOTO_OVERLAY_INPUT = "58";
 const PHOTO_OVERLAY_SLOT = "4";
 const RADIO_MV_LAYOUTS = [
-  { input: "29", label: "2 Camaras", layers: ["3", "4"], positions: ["Posicion 1", "Posicion 2"], special: { "4": ["37", "41", "39", "59"] } },
-  { input: "32", label: "3 Camaras", layers: ["3", "4", "5"], positions: ["Posicion 1", "Posicion 2", "Posicion 3"], special: { "5": ["37", "59"] } },
-  { input: "35", label: "4 Camaras", layers: ["3", "4", "5", "6"], positions: ["Posicion 1", "Posicion 2", "Posicion 3", "Posicion 4"], special: { "6": ["37", "41", "59"] } },
+  { input: "29", label: "2 Camaras", layers: ["3", "4"], positions: ["Posicion 1", "Posicion 2"], special: { "4": ["37", "41", "39", "50"] } },
+  { input: "32", label: "3 Camaras", layers: ["3", "4", "5"], positions: ["Posicion 1", "Posicion 2", "Posicion 3"], special: { "5": ["37", "50"] } },
+  { input: "35", label: "4 Camaras", layers: ["3", "4", "5", "6"], positions: ["Posicion 1", "Posicion 2", "Posicion 3", "Posicion 4"], special: { "6": ["37", "41", "50"] } },
+  {
+    input: "168",
+    label: "4 Camaras + Video",
+    layers: ["2", "3", "4", "5"],
+    positions: ["Camara 1", "Camara 2", "Camara 3", "Camara 4"],
+    special: {}
+  },
   { input: "12", label: "5 Camaras", layers: ["2", "3", "4", "5", "6"], positions: ["Posicion 1", "Posicion 2", "Posicion 3", "Posicion 4", "Posicion 5"], special: {} }
 ];
 const RADIO_MV_SOURCES = [
@@ -183,6 +214,7 @@ const RADIO_MV_SPECIAL_SOURCES = {
   "37": "Call",
   "39": "Foto",
   "41": "Calle / RTSP",
+  "50": "SRT 10.10.10.111 10000",
   "59": "Video"
 };
 const RADIO_MV_SELECTED_KEY = "selectedRadioMultiviewLayout";
@@ -236,6 +268,7 @@ const els = {
   radioMultiviewLayouts: document.querySelector("#radioMultiviewLayouts"),
   radioMultiviewGrid: document.querySelector("#radioMultiviewGrid"),
   radioMultiviewStatus: document.querySelector("#radioMultiviewStatus"),
+  resetGrid: document.querySelector("#resetGrid"),
   multiviewTarget: document.querySelector("#multiviewTarget"),
   masterMeterLeft: document.querySelector("#masterMeterLeft"),
   masterMeterRight: document.querySelector("#masterMeterRight"),
@@ -322,6 +355,41 @@ function saveRadioAssignment(layoutInput, positionIndex, cameraInput) {
   localStorage.setItem(RADIO_STORAGE_KEY, JSON.stringify(assignments));
 }
 
+function readUtcOverlayGroupSelections() {
+  try {
+    const selections = JSON.parse(localStorage.getItem(UTC_OVERLAY_GROUP_STORAGE_KEY) || "{}");
+    return selections && typeof selections === "object" ? selections : {};
+  } catch {
+    return {};
+  }
+}
+
+function selectedUtcOverlayGroupInput(group) {
+  const selections = readUtcOverlayGroupSelections();
+  const selected = String(selections[group.id] || "");
+  return group.inputs.includes(selected) ? selected : group.inputs[0];
+}
+
+function saveUtcOverlayGroupSelection(groupId, inputNumber) {
+  const selections = readUtcOverlayGroupSelections();
+  selections[groupId] = String(inputNumber);
+  localStorage.setItem(UTC_OVERLAY_GROUP_STORAGE_KEY, JSON.stringify(selections));
+}
+
+function utcOverlayGroupOptionLabel(group, inputNumber) {
+  return group.labels?.[inputNumber]
+    || getInput(inputNumber)?.title?.replace(/^Offline - /, "")
+    || `Input ${inputNumber}`;
+}
+
+function currentLogoInput() {
+  return LOGO_INPUT;
+}
+
+function activeLogoInput() {
+  return state.overlays["3"] || "";
+}
+
 async function callVmix(params = {}) {
   const query = new URLSearchParams(params);
   const response = await fetch(`/vmix?${query.toString()}`);
@@ -336,18 +404,13 @@ async function callVmix(params = {}) {
 
 async function runFunction(functionName, input) {
   const params = { Function: functionName };
-  let resolvedInput = input;
 
-  if (functionName === "OverlayInput3In" && input === LOGO_INPUT && selectedLogoPath() === MODO_SABADO_LOGO_PATH) {
-    resolvedInput = MODO_SABADO_LOGO_INPUT;
-  }
-
-  if (resolvedInput) {
-    params.Input = resolvedInput;
+  if (input) {
+    params.Input = input;
   }
 
   await callVmix(params);
-  setLog(`${functionName}${resolvedInput ? ` input ${resolvedInput}` : ""}`);
+  setLog(`${functionName}${input ? ` input ${input}` : ""}`);
   await refreshState();
 }
 
@@ -502,6 +565,12 @@ function parseInputs(xmlText) {
 
   state.active = vmix.querySelector("active")?.textContent.trim() || "";
   state.preview = vmix.querySelector("preview")?.textContent.trim() || "";
+  state.overlays = Object.fromEntries(
+    [...xml.querySelectorAll("overlays > overlay")].map((overlay) => [
+      overlay.getAttribute("number"),
+      state.inputs.find((input) => input.key === overlay.getAttribute("key"))?.number || ""
+    ])
+  );
   parseMasterMeter(vmix);
   state.inputs = [...xml.querySelectorAll("inputs > input")].map((input) => ({
     key: input.getAttribute("key"),
@@ -518,6 +587,12 @@ function parseInputs(xmlText) {
       key: overlay.getAttribute("key")
     }))
   }));
+  state.overlays = Object.fromEntries(
+    [...xml.querySelectorAll("overlays > overlay")].map((overlay) => {
+      const inputNumber = state.inputs.find((input) => input.key === overlay.getAttribute("key"))?.number || "";
+      return [overlay.getAttribute("number"), inputNumber];
+    })
+  );
 }
 
 function parseMasterMeter(vmix) {
@@ -561,13 +636,20 @@ function renderMasterMeter() {
 }
 
 function loadMonitorConfig() {
-  localStorage.setItem("previewMonitorUrl", PREVIEW_MONITOR_URL);
+  localStorage.setItem("previewMonitorUrl", DISABLE_MONITORS ? "" : PREVIEW_MONITOR_URL);
+  document.body.classList.toggle("no-monitors", DISABLE_MONITORS);
   state.zocalos = readZocalos();
   renderMonitorConfig();
 }
 
 function renderMonitorConfig() {
   if (!els.previewFeed || !els.programFeed) {
+    return;
+  }
+
+  if (DISABLE_MONITORS) {
+    renderMonitorFeed("preview", "");
+    renderMonitorFeed("program", "");
     return;
   }
 
@@ -707,7 +789,55 @@ function renderUtcOverlays() {
     return;
   }
 
+  if (document.activeElement?.matches?.("[data-utc-overlay-group-select]")) {
+    return;
+  }
+
   els.utcOverlayGrid.innerHTML = "";
+
+  UTC_OVERLAY_GROUPS.forEach((group) => {
+    const selectedInput = selectedUtcOverlayGroupInput(group);
+    const selectedTitle = utcOverlayGroupOptionLabel(group, selectedInput);
+    const card = document.createElement("div");
+    const label = document.createElement("strong");
+    const controls = document.createElement("div");
+    const select = document.createElement("select");
+    const action = document.createElement("button");
+    const hasAnyInput = group.inputs.some((inputNumber) => Boolean(getInput(inputNumber)));
+
+    card.className = "sponsor-option-card";
+    label.className = "sponsor-option-label";
+    label.textContent = group.label;
+
+    controls.className = "sponsor-option-controls";
+
+    select.className = "sponsor-option-select";
+    select.dataset.utcOverlayGroupSelect = group.id;
+
+    group.inputs.forEach((inputNumber) => {
+      const option = document.createElement("option");
+      option.value = inputNumber;
+      option.selected = inputNumber === selectedInput;
+      option.textContent = utcOverlayGroupOptionLabel(group, inputNumber);
+      select.appendChild(option);
+    });
+
+    action.type = "button";
+    action.className = "sponsor-button sponsor-option-action";
+    action.dataset.utcOverlayGroup = group.id;
+    action.disabled = !getInput(selectedInput);
+    action.title = selectedTitle;
+    action.textContent = `Poner ${selectedTitle}`;
+
+    if (!hasAnyInput) {
+      select.disabled = true;
+      action.disabled = true;
+    }
+
+    controls.append(select, action);
+    card.append(label, controls);
+    els.utcOverlayGrid.appendChild(card);
+  });
 
   UTC_OVERLAYS.forEach((overlay) => {
     const input = getInput(overlay.input);
@@ -722,6 +852,29 @@ function renderUtcOverlays() {
     button.title = title;
     button.textContent = title;
     els.utcOverlayGrid.appendChild(button);
+  });
+}
+
+function renderResetButtons() {
+  if (!els.resetGrid) {
+    return;
+  }
+
+  els.resetGrid.innerHTML = "";
+
+  RESET_INPUTS.forEach((camera) => {
+    const input = getInput(camera.input);
+    const button = document.createElement("button");
+    const title = input?.title?.replace(/^Offline - /, "") || camera.label;
+
+    button.type = "button";
+    button.className = "reset-button";
+    button.dataset.function = "ResetInput";
+    button.dataset.input = camera.input;
+    button.disabled = !input;
+    button.title = title;
+    button.innerHTML = `<strong>${title}</strong><span>Reset input ${camera.input}</span>`;
+    els.resetGrid.appendChild(button);
   });
 }
 
@@ -1503,12 +1656,23 @@ async function runZocalo(inputNumber, action) {
 
 async function runUtcOverlay(inputNumber, slot) {
   await callVmix({
-    Function: `OverlayInput${slot}`,
+    Function: `OverlayInput${slot}In`,
     Input: inputNumber
   });
 
   setLog(`Overlay ${slot}: ${getInput(inputNumber)?.title || `Input ${inputNumber}`}`);
   await refreshState();
+}
+
+async function runUtcOverlayGroup(groupId) {
+  const group = UTC_OVERLAY_GROUPS.find((item) => item.id === groupId);
+
+  if (!group) {
+    return;
+  }
+
+  const inputNumber = selectedUtcOverlayGroupInput(group);
+  await runUtcOverlay(inputNumber, group.slot);
 }
 
 async function turnOffUtcOverlay(slot) {
@@ -1521,14 +1685,10 @@ async function turnOffUtcOverlay(slot) {
 }
 
 async function selectLogo(logoPath) {
+  const currentOverlayLogo = activeLogoInput();
   localStorage.setItem(LOGO_STORAGE_KEY, logoPath);
   renderLogoList();
-
-  if (logoPath === MODO_SABADO_LOGO_PATH) {
-    setLog(`Logo seleccionado: ${logoLabel(logoPath)}`);
-    await refreshState();
-    return;
-  }
+  const nextLogoInput = currentLogoInput();
 
   await callVmix({
     Function: "SetImage",
@@ -1537,7 +1697,42 @@ async function selectLogo(logoPath) {
     Value: logoPath
   });
 
+  if (currentOverlayLogo === LOGO_INPUT) {
+    await callVmix({ Function: "OverlayInput3Out" });
+    await callVmix({
+      Function: "OverlayInput3In",
+      Input: nextLogoInput
+    });
+  }
+
   setLog(`Logo seleccionado: ${logoLabel(logoPath)}`);
+  await refreshState();
+}
+
+async function toggleLogoOverlay(action) {
+  if (action === "off") {
+    await callVmix({ Function: "OverlayInput3Out" });
+    setLog("Logo OFF");
+    await refreshState();
+    return;
+  }
+
+  const targetInput = currentLogoInput();
+
+  await callVmix({
+    Function: "SetImage",
+    Input: LOGO_INPUT,
+    SelectedName: LOGO_FIELD,
+    Value: selectedLogoPath()
+  });
+
+  await callVmix({ Function: "OverlayInput3Out" });
+  await callVmix({
+    Function: "OverlayInput3In",
+    Input: targetInput
+  });
+
+  setLog(`Logo ON: ${logoLabel(selectedLogoPath())}`);
   await refreshState();
 }
 
@@ -1687,6 +1882,7 @@ async function refreshState() {
     await syncPreviewExternal2();
     renderMasterMeter();
     renderDirectCuts();
+    renderResetButtons();
     renderInputButtons();
     renderMultiviewControls();
     renderRadioTest();
@@ -1875,6 +2071,22 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
+  const utcOverlayGroup = event.target.closest("[data-utc-overlay-group]");
+
+  if (utcOverlayGroup) {
+    utcOverlayGroup.disabled = true;
+
+    try {
+      await runUtcOverlayGroup(utcOverlayGroup.dataset.utcOverlayGroup);
+    } catch (error) {
+      setLog(error.message);
+    } finally {
+      utcOverlayGroup.disabled = false;
+    }
+
+    return;
+  }
+
   const logoItem = event.target.closest("[data-logo-path]");
 
   if (logoItem) {
@@ -1886,6 +2098,22 @@ document.addEventListener("click", async (event) => {
       setLog(error.message);
     } finally {
       logoItem.disabled = false;
+    }
+
+    return;
+  }
+
+  const logoAction = event.target.closest("[data-logo-action]");
+
+  if (logoAction) {
+    logoAction.disabled = true;
+
+    try {
+      await toggleLogoOverlay(logoAction.dataset.logoAction);
+    } catch (error) {
+      setLog(error.message);
+    } finally {
+      logoAction.disabled = false;
     }
 
     return;
@@ -2064,6 +2292,14 @@ document.addEventListener("change", async (event) => {
     const current = zocaloState(zocaloSlot.dataset.zocaloSlot);
     current.slot = zocaloSlot.value;
     saveZocalos();
+    return;
+  }
+
+  const utcOverlayGroupSelect = event.target.closest("[data-utc-overlay-group-select]");
+
+  if (utcOverlayGroupSelect) {
+    saveUtcOverlayGroupSelection(utcOverlayGroupSelect.dataset.utcOverlayGroupSelect, utcOverlayGroupSelect.value);
+    renderUtcOverlays();
     return;
   }
 

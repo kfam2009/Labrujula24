@@ -119,6 +119,10 @@ button:focus-visible {
   border-color: rgba(208, 162, 21, 0.65);
 }
 
+.tab-button[data-tab="reset"] {
+  border-color: rgba(125, 211, 252, 0.65);
+}
+
 .tab-button[data-tab="amo-viajar"] {
   border-color: rgba(18, 183, 106, 0.65);
 }
@@ -150,6 +154,11 @@ button:focus-visible {
 .tab-button[data-tab="multiview"].is-active {
   background: var(--preview);
   color: #111317;
+}
+
+.tab-button[data-tab="reset"].is-active {
+  background: #7dd3fc;
+  color: #08121a;
 }
 
 .tab-button[data-tab="amo-viajar"].is-active {
@@ -291,6 +300,10 @@ h3 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+body.no-monitors .monitor-grid {
+  display: none;
+}
+
 .monitor {
   display: grid;
   gap: 6px;
@@ -359,10 +372,20 @@ h3 {
   border-color: rgba(33, 196, 123, 0.45);
 }
 
+.reset-panel {
+  border-color: rgba(125, 211, 252, 0.45);
+}
+
 .direct-grid {
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.reset-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .direct-button {
@@ -388,6 +411,36 @@ h3 {
 }
 
 .direct-button:disabled {
+  color: rgba(244, 247, 251, 0.3);
+  cursor: not-allowed;
+}
+
+.reset-button {
+  align-items: flex-start;
+  background: #151820;
+  border-color: rgba(125, 211, 252, 0.28);
+  display: grid;
+  gap: 6px;
+  min-height: 68px;
+  padding: 12px;
+  text-align: left;
+}
+
+.reset-button strong {
+  color: #d6f3ff;
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.reset-button span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.reset-button:disabled {
   color: rgba(244, 247, 251, 0.3);
   cursor: not-allowed;
 }
@@ -1052,6 +1105,46 @@ h3 {
   opacity: 0.42;
 }
 
+.sponsor-option-card {
+  background: #111317;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  grid-column: span 2;
+  padding: 10px 12px;
+}
+
+.sponsor-option-label {
+  color: var(--text);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sponsor-option-controls {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.sponsor-option-select {
+  background: #171a20;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  min-width: 0;
+  padding: 9px 10px;
+}
+
+.sponsor-option-action {
+  white-space: nowrap;
+}
+
 .logo-button {
   background: #1b3b25;
   border-color: #16a34a;
@@ -1240,6 +1333,14 @@ h3 {
   }
 
   .amo-viajar-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .sponsor-option-card {
+    grid-column: span 1;
+  }
+
+  .sponsor-option-controls {
     grid-template-columns: 1fr;
   }
 
