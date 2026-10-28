@@ -2,6 +2,7 @@ const state = {
   inputs: [],
   active: "",
   preview: "",
+  overlays: {},
   master: {
     left: 0,
     right: 0,
@@ -14,6 +15,7 @@ const state = {
 const monitorRefreshTimers = new Map();
 const zocaloSearchTerms = {};
 let isRefreshingState = false;
+const DISABLE_MONITORS = new URLSearchParams(window.location.search).get("nomonitors") === "1";
 const PREVIEW_MONITOR_URL = "/monitor/preview.mjpg";
 const PROGRAM_MONITOR_URL = "/monitor/program.mjpg";
 const MULTIVIEW_INPUTS = ["12", "13", "14"];
@@ -32,6 +34,7 @@ const DIRECT_CUTS = [
   { input: "29", label: "2 Camaras" },
   { input: "32", label: "3 Camaras" },
   { input: "35", label: "4 Camaras" },
+  { input: "168", label: "4 Camaras + Video" },
   { input: "12", label: "5 Camaras" },
   { input: "105", label: "Call en vivo" },
   { input: "59", label: "Video" },
@@ -45,9 +48,18 @@ const DIRECT_OVERLAY_INPUTS = [
   { slot: "1", input: "124" },
   { slot: "2", input: "143" }
 ];
+const RESET_INPUTS = [
+  { input: "15", label: "Camara 1" },
+  { input: "16", label: "Camara 2" },
+  { input: "17", label: "Camara 3" },
+  { input: "18", label: "Camara 4" },
+  { input: "19", label: "Camara 5" },
+  { input: "20", label: "Plano general" }
+];
 const UTC_OVERLAYS = [
   { input: "150", label: "BJ30", slot: "4" },
   { input: "161", label: "Campos Hermanos", slot: "4" },
+  { input: "175", label: "Pringles 144 Aniversario", slot: "4" },
   { input: "155", label: "DM Group", slot: "4" },
   { input: "164", label: "Gatiperry", slot: "4" },
   { input: "158", label: "Hipertehuelche", slot: "4" },
@@ -59,9 +71,26 @@ const UTC_OVERLAYS = [
   { input: "160", label: "MGB", slot: "4" },
   { input: "163", label: "Pariz Clothes", slot: "4" },
   { input: "165", label: "Programa Puente BSAS", slot: "4" },
+  { input: "166", label: "HARD DEALER", slot: "4" },
   { input: "157", label: "Pintureria Tricolor", slot: "4" },
   { input: "153", label: "Sonia Gamero", slot: "4" }
 ];
+const UTC_OVERLAY_GROUPS = [
+  {
+    id: "fiat-171-173",
+    label: "Corcel",
+    slot: "4",
+    inputs: ["171", "172", "173", "177", "178"],
+    labels: {
+      "171": "Fiat",
+      "172": "RAM",
+      "173": "BYD",
+      "177": "Financiacion",
+      "178": "Citroen"
+    }
+  }
+];
+const UTC_OVERLAY_GROUP_STORAGE_KEY = "utcOverlayGroupSelections";
 const ZOCALO_DEFAULTS_VERSION = "utc-2026-06-08-search";
 const DEFAULT_ZOCALOS = {
   "143": {
@@ -136,8 +165,8 @@ const DEFAULT_ZOCALOS = {
 const LOGO_INPUT = "141";
 const LOGO_FIELD = "Image1.Source";
 const LOGO_STORAGE_KEY = "selectedLogoPath";
+const BUENA_QUIMICA_LOGO = "input:179";
 const MODO_SABADO_LOGO_PATH = "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\modo_sabado_logo_logo.png";
-const MODO_SABADO_LOGO_INPUT = "167";
 const LOGO_LIST = [
   "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\amo viajar_logo.png",
   "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\bahia hoy_logo.png",
@@ -152,7 +181,8 @@ const LOGO_LIST = [
   "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\ingenierowhite_logo.png",
   "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\peña_de_homero_logo.png",
   "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\irresponsables_logo.png",
-  MODO_SABADO_LOGO_PATH
+  MODO_SABADO_LOGO_PATH,
+  BUENA_QUIMICA_LOGO
 ];
 const PHOTO_STORAGE_KEY = "insertPhotoList";
 const PHOTO_SELECTED_KEY = "selectedInsertPhotoIndex";
@@ -166,9 +196,16 @@ const PHOTO_MULTIVIEW_SOURCE = "39";
 const PHOTO_OVERLAY_INPUT = "58";
 const PHOTO_OVERLAY_SLOT = "4";
 const RADIO_MV_LAYOUTS = [
-  { input: "29", label: "2 Camaras", layers: ["3", "4"], positions: ["Posicion 1", "Posicion 2"], special: { "4": ["37", "41", "39", "59"] } },
-  { input: "32", label: "3 Camaras", layers: ["3", "4", "5"], positions: ["Posicion 1", "Posicion 2", "Posicion 3"], special: { "5": ["37", "59"] } },
-  { input: "35", label: "4 Camaras", layers: ["3", "4", "5", "6"], positions: ["Posicion 1", "Posicion 2", "Posicion 3", "Posicion 4"], special: { "6": ["37", "41", "59"] } },
+  { input: "29", label: "2 Camaras", layers: ["3", "4"], positions: ["Posicion 1", "Posicion 2"], special: { "4": ["37", "41", "39", "50"] } },
+  { input: "32", label: "3 Camaras", layers: ["3", "4", "5"], positions: ["Posicion 1", "Posicion 2", "Posicion 3"], special: { "5": ["37", "50"] } },
+  { input: "35", label: "4 Camaras", layers: ["3", "4", "5", "6"], positions: ["Posicion 1", "Posicion 2", "Posicion 3", "Posicion 4"], special: { "6": ["37", "41", "50"] } },
+  {
+    input: "168",
+    label: "4 Camaras + Video",
+    layers: ["2", "3", "4", "5"],
+    positions: ["Camara 1", "Camara 2", "Camara 3", "Camara 4"],
+    special: {}
+  },
   { input: "12", label: "5 Camaras", layers: ["2", "3", "4", "5", "6"], positions: ["Posicion 1", "Posicion 2", "Posicion 3", "Posicion 4", "Posicion 5"], special: {} }
 ];
 const RADIO_MV_SOURCES = [
@@ -183,9 +220,16 @@ const RADIO_MV_SPECIAL_SOURCES = {
   "37": "Call",
   "39": "Foto",
   "41": "Calle / RTSP",
+  "50": "SRT 10.10.10.111 10000",
   "59": "Video"
 };
 const RADIO_MV_SELECTED_KEY = "selectedRadioMultiviewLayout";
+const RADIO_MV_PAN_STORAGE_KEY = "radioMultiviewLayerPanX";
+const RADIO_MV_PAN_STEP = 0.05;
+const RADIO_MV_PAN_LIMIT = 2;
+const RADIO_MV_CROP_STORAGE_KEY = "radioMultiviewLayerCropX";
+const RADIO_MV_CROP_STEP = 0.02;
+const RADIO_MV_CROP_LIMIT = 0.45;
 const DEFAULT_PHOTO_LIST = [
   "\\\\Desktop-al37edb\\fotos\\BAHÍA HOY\\FRANCOFOTO.jpg",
   "\\\\Desktop-al37edb\\fotos\\BAHÍA HOY\\MAUROFOTO.jpg",
@@ -210,6 +254,7 @@ const RADIO_STORAGE_KEY = "radioMultiviewAssignments";
 let lastExternal2Preview = "";
 let selectedRadioLayout = "6";
 let amoViajarUpload = null;
+let selectedRadioMultiviewLayer = "";
 
 const els = {
   programFeed: document.querySelector("#programFeed"),
@@ -236,6 +281,12 @@ const els = {
   radioMultiviewLayouts: document.querySelector("#radioMultiviewLayouts"),
   radioMultiviewGrid: document.querySelector("#radioMultiviewGrid"),
   radioMultiviewStatus: document.querySelector("#radioMultiviewStatus"),
+  radioMultiviewPanLabel: document.querySelector("#radioMultiviewPanLabel"),
+  radioMultiviewPanButtons: [...document.querySelectorAll("[data-radio-mv-pan]")],
+  radioMultiviewCropLeftLabel: document.querySelector("#radioMultiviewCropLeftLabel"),
+  radioMultiviewCropRightLabel: document.querySelector("#radioMultiviewCropRightLabel"),
+  radioMultiviewCropButtons: [...document.querySelectorAll("[data-radio-mv-crop]")],
+  resetGrid: document.querySelector("#resetGrid"),
   multiviewTarget: document.querySelector("#multiviewTarget"),
   masterMeterLeft: document.querySelector("#masterMeterLeft"),
   masterMeterRight: document.querySelector("#masterMeterRight"),
@@ -296,6 +347,54 @@ function saveMultiviewAssignment(multiviewInput, positionIndex, cameraInput) {
   localStorage.setItem(MULTIVIEW_STORAGE_KEY, JSON.stringify(assignments));
 }
 
+function readRadioMultiviewPan() {
+  try {
+    const values = JSON.parse(localStorage.getItem(RADIO_MV_PAN_STORAGE_KEY) || "{}");
+    return values && typeof values === "object" ? values : {};
+  } catch {
+    return {};
+  }
+}
+
+function radioMultiviewPanValue(layoutInput, layer) {
+  const value = Number(readRadioMultiviewPan()[layoutInput]?.[layer]);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function saveRadioMultiviewPan(layoutInput, layer, value) {
+  const values = readRadioMultiviewPan();
+  values[layoutInput] = values[layoutInput] || {};
+  values[layoutInput][layer] = value;
+  localStorage.setItem(RADIO_MV_PAN_STORAGE_KEY, JSON.stringify(values));
+}
+
+function readRadioMultiviewCrop() {
+  try {
+    const values = JSON.parse(localStorage.getItem(RADIO_MV_CROP_STORAGE_KEY) || "{}");
+    return values && typeof values === "object" ? values : {};
+  } catch {
+    return {};
+  }
+}
+
+function radioMultiviewCropValue(layoutInput, layer) {
+  const saved = readRadioMultiviewCrop()[layoutInput]?.[layer] || {};
+  const left = Number(saved.left);
+  const right = Number(saved.right);
+
+  return {
+    left: Number.isFinite(left) ? left : 0,
+    right: Number.isFinite(right) ? right : 0
+  };
+}
+
+function saveRadioMultiviewCrop(layoutInput, layer, crop) {
+  const values = readRadioMultiviewCrop();
+  values[layoutInput] = values[layoutInput] || {};
+  values[layoutInput][layer] = crop;
+  localStorage.setItem(RADIO_MV_CROP_STORAGE_KEY, JSON.stringify(values));
+}
+
 function setActiveTab(tabName) {
   els.tabButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.tab === tabName);
@@ -322,6 +421,96 @@ function saveRadioAssignment(layoutInput, positionIndex, cameraInput) {
   localStorage.setItem(RADIO_STORAGE_KEY, JSON.stringify(assignments));
 }
 
+function readUtcOverlayGroupSelections() {
+  try {
+    const selections = JSON.parse(localStorage.getItem(UTC_OVERLAY_GROUP_STORAGE_KEY) || "{}");
+    return selections && typeof selections === "object" ? selections : {};
+  } catch {
+    return {};
+  }
+}
+
+function selectedUtcOverlayGroupInput(group) {
+  const selections = readUtcOverlayGroupSelections();
+  const selected = String(selections[group.id] || "");
+  return group.inputs.includes(selected) ? selected : group.inputs[0];
+}
+
+function saveUtcOverlayGroupSelection(groupId, inputNumber) {
+  const selections = readUtcOverlayGroupSelections();
+  selections[groupId] = String(inputNumber);
+  localStorage.setItem(UTC_OVERLAY_GROUP_STORAGE_KEY, JSON.stringify(selections));
+}
+
+function utcOverlayGroupOptionLabel(group, inputNumber) {
+  return group.labels?.[inputNumber]
+    || getInput(inputNumber)?.title?.replace(/^Offline - /, "")
+    || `Input ${inputNumber}`;
+}
+
+function currentLogoInput() {
+  return selectedLogoPath() === BUENA_QUIMICA_LOGO ? "179" : LOGO_INPUT;
+}
+
+function activeLogoInput() {
+  return state.overlays["3"] || "";
+}
+
+function logoMultiviewLayers() {
+  const logoKeys = new Set([LOGO_INPUT, "179"].map((number) => getInput(number)?.key).filter(Boolean));
+
+  if (!logoKeys.size) {
+    return [];
+  }
+
+  return state.inputs.flatMap((input) => input.overlays
+    .filter((overlay) => logoKeys.has(overlay.key))
+    .map((overlay) => ({
+      input: input.number,
+      layer: String(Number(overlay.index) + 1),
+      isStandardLogo: overlay.key === getInput(LOGO_INPUT)?.key
+    })));
+}
+
+async function setLogoMultiviewLayers(isOn) {
+  const targets = logoMultiviewLayers();
+  const nestedInputs = isOn && (state.active === "12" || state.preview === "12")
+    ? fiveCameraSourceInputs()
+    : new Set();
+
+  for (const target of targets) {
+    await callVmix({
+      Function: isOn && target.isStandardLogo && !nestedInputs.has(target.input) ? "MultiViewOverlayOn" : "MultiViewOverlayOff",
+      Input: target.input,
+      Value: target.layer
+    });
+  }
+
+  return targets.length;
+}
+
+function fiveCameraSourceInputs() {
+  const layout = RADIO_MV_LAYOUTS.find((item) => item.input === "12");
+  const target = getInput("12");
+  const keys = new Set(layout.layers.map((layer) => multiviewOverlayForLayer(target, layer)?.key));
+  return new Set(state.inputs.filter((input) => keys.has(input.key)).map((input) => input.number));
+}
+
+async function prepareFiveCameraLogos(inputNumber) {
+  if (String(inputNumber) !== "12") {
+    return;
+  }
+
+  const sources = fiveCameraSourceInputs();
+  for (const target of logoMultiviewLayers().filter((item) => sources.has(item.input))) {
+    await callVmix({
+      Function: "MultiViewOverlayOff",
+      Input: target.input,
+      Value: target.layer
+    });
+  }
+}
+
 async function callVmix(params = {}) {
   const query = new URLSearchParams(params);
   const response = await fetch(`/vmix?${query.toString()}`);
@@ -336,18 +525,13 @@ async function callVmix(params = {}) {
 
 async function runFunction(functionName, input) {
   const params = { Function: functionName };
-  let resolvedInput = input;
 
-  if (functionName === "OverlayInput3In" && input === LOGO_INPUT && selectedLogoPath() === MODO_SABADO_LOGO_PATH) {
-    resolvedInput = MODO_SABADO_LOGO_INPUT;
-  }
-
-  if (resolvedInput) {
-    params.Input = resolvedInput;
+  if (input) {
+    params.Input = input;
   }
 
   await callVmix(params);
-  setLog(`${functionName}${resolvedInput ? ` input ${resolvedInput}` : ""}`);
+  setLog(`${functionName}${input ? ` input ${input}` : ""}`);
   await refreshState();
 }
 
@@ -502,6 +686,12 @@ function parseInputs(xmlText) {
 
   state.active = vmix.querySelector("active")?.textContent.trim() || "";
   state.preview = vmix.querySelector("preview")?.textContent.trim() || "";
+  state.overlays = Object.fromEntries(
+    [...xml.querySelectorAll("overlays > overlay")].map((overlay) => [
+      overlay.getAttribute("number"),
+      state.inputs.find((input) => input.key === overlay.getAttribute("key"))?.number || ""
+    ])
+  );
   parseMasterMeter(vmix);
   state.inputs = [...xml.querySelectorAll("inputs > input")].map((input) => ({
     key: input.getAttribute("key"),
@@ -518,6 +708,12 @@ function parseInputs(xmlText) {
       key: overlay.getAttribute("key")
     }))
   }));
+  state.overlays = Object.fromEntries(
+    [...xml.querySelectorAll("overlays > overlay")].map((overlay) => {
+      const inputNumber = state.inputs.find((input) => input.key === overlay.getAttribute("key"))?.number || "";
+      return [overlay.getAttribute("number"), inputNumber];
+    })
+  );
 }
 
 function parseMasterMeter(vmix) {
@@ -561,13 +757,20 @@ function renderMasterMeter() {
 }
 
 function loadMonitorConfig() {
-  localStorage.setItem("previewMonitorUrl", PREVIEW_MONITOR_URL);
+  localStorage.setItem("previewMonitorUrl", DISABLE_MONITORS ? "" : PREVIEW_MONITOR_URL);
+  document.body.classList.toggle("no-monitors", DISABLE_MONITORS);
   state.zocalos = readZocalos();
   renderMonitorConfig();
 }
 
 function renderMonitorConfig() {
   if (!els.previewFeed || !els.programFeed) {
+    return;
+  }
+
+  if (DISABLE_MONITORS) {
+    renderMonitorFeed("preview", "");
+    renderMonitorFeed("program", "");
     return;
   }
 
@@ -707,7 +910,55 @@ function renderUtcOverlays() {
     return;
   }
 
+  if (document.activeElement?.matches?.("[data-utc-overlay-group-select]")) {
+    return;
+  }
+
   els.utcOverlayGrid.innerHTML = "";
+
+  UTC_OVERLAY_GROUPS.forEach((group) => {
+    const selectedInput = selectedUtcOverlayGroupInput(group);
+    const selectedTitle = utcOverlayGroupOptionLabel(group, selectedInput);
+    const card = document.createElement("div");
+    const label = document.createElement("strong");
+    const controls = document.createElement("div");
+    const select = document.createElement("select");
+    const action = document.createElement("button");
+    const hasAnyInput = group.inputs.some((inputNumber) => Boolean(getInput(inputNumber)));
+
+    card.className = "sponsor-option-card";
+    label.className = "sponsor-option-label";
+    label.textContent = group.label;
+
+    controls.className = "sponsor-option-controls";
+
+    select.className = "sponsor-option-select";
+    select.dataset.utcOverlayGroupSelect = group.id;
+
+    group.inputs.forEach((inputNumber) => {
+      const option = document.createElement("option");
+      option.value = inputNumber;
+      option.selected = inputNumber === selectedInput;
+      option.textContent = utcOverlayGroupOptionLabel(group, inputNumber);
+      select.appendChild(option);
+    });
+
+    action.type = "button";
+    action.className = "sponsor-button sponsor-option-action";
+    action.dataset.utcOverlayGroup = group.id;
+    action.disabled = !getInput(selectedInput);
+    action.title = selectedTitle;
+    action.textContent = `Poner ${selectedTitle}`;
+
+    if (!hasAnyInput) {
+      select.disabled = true;
+      action.disabled = true;
+    }
+
+    controls.append(select, action);
+    card.append(label, controls);
+    els.utcOverlayGrid.appendChild(card);
+  });
 
   UTC_OVERLAYS.forEach((overlay) => {
     const input = getInput(overlay.input);
@@ -725,7 +976,33 @@ function renderUtcOverlays() {
   });
 }
 
+function renderResetButtons() {
+  if (!els.resetGrid) {
+    return;
+  }
+
+  els.resetGrid.innerHTML = "";
+
+  RESET_INPUTS.forEach((camera) => {
+    const input = getInput(camera.input);
+    const button = document.createElement("button");
+    const title = input?.title?.replace(/^Offline - /, "") || camera.label;
+
+    button.type = "button";
+    button.className = "reset-button";
+    button.dataset.function = "ResetInput";
+    button.dataset.input = camera.input;
+    button.disabled = !input;
+    button.title = title;
+    button.innerHTML = `<strong>${title}</strong><span>Reset input ${camera.input}</span>`;
+    els.resetGrid.appendChild(button);
+  });
+}
+
 function logoLabel(path) {
+  if (path === BUENA_QUIMICA_LOGO) {
+    return "Buena Quimica";
+  }
   return path
     .split("\\")
     .pop()
@@ -857,6 +1134,10 @@ function renderRadioMultiview() {
   const selectedLayout = selectedRadioMultiviewLayout();
   const target = getInput(selectedLayout.input);
 
+  if (!selectedLayout.layers.includes(selectedRadioMultiviewLayer)) {
+    selectedRadioMultiviewLayer = selectedLayout.layers[0] || "";
+  }
+
   els.radioMultiviewLayouts.innerHTML = "";
   RADIO_MV_LAYOUTS.forEach((layout) => {
     const input = getInput(layout.input);
@@ -911,6 +1192,8 @@ function renderRadioMultiview() {
     const assignedInput = state.inputs.find((input) => input.key === assignedKey);
 
     row.className = "mv-row";
+    row.dataset.radioMvRow = layer;
+    row.classList.toggle("is-selected", layer === selectedRadioMultiviewLayer);
     label.className = "mv-position-label";
     label.textContent = selectedLayout.positions?.[index] || `Posicion ${index + 1}`;
     label.title = `Layer ${layer}`;
@@ -941,6 +1224,114 @@ function renderRadioMultiview() {
     row.append(label, select, current);
     els.radioMultiviewGrid.appendChild(row);
   });
+
+  const selectedLayerIndex = selectedLayout.layers.indexOf(selectedRadioMultiviewLayer);
+  const selectedLayerOverlay = multiviewOverlayForLayer(target, selectedRadioMultiviewLayer);
+  const selectedCamera = state.inputs.find((input) => input.key === selectedLayerOverlay?.key);
+  const selectedPosition = selectedLayout.positions?.[selectedLayerIndex] || `Posicion ${selectedLayerIndex + 1}`;
+  const isPreview = state.preview === selectedLayout.input;
+  const panValue = radioMultiviewPanValue(selectedLayout.input, selectedRadioMultiviewLayer);
+  const cropValue = radioMultiviewCropValue(selectedLayout.input, selectedRadioMultiviewLayer);
+
+  if (els.radioMultiviewPanLabel) {
+    els.radioMultiviewPanLabel.textContent = selectedRadioMultiviewLayer
+      ? `${selectedPosition} - ${selectedCamera?.title || "Sin camara"} (${panValue.toFixed(2)})${isPreview ? "" : " - poner en Previo"}`
+      : "Selecciona una posicion";
+  }
+
+  els.radioMultiviewPanButtons.forEach((button) => {
+    button.disabled = !target || !selectedRadioMultiviewLayer || !isPreview;
+  });
+
+  if (els.radioMultiviewCropLeftLabel) {
+    els.radioMultiviewCropLeftLabel.textContent = `Izquierdo ${Math.round(cropValue.left * 100)}%`;
+  }
+
+  if (els.radioMultiviewCropRightLabel) {
+    els.radioMultiviewCropRightLabel.textContent = `Derecho ${Math.round(cropValue.right * 100)}%`;
+  }
+
+  els.radioMultiviewCropButtons.forEach((button) => {
+    button.disabled = !target || !selectedRadioMultiviewLayer || !isPreview;
+  });
+}
+
+async function adjustRadioMultiviewPan(action) {
+  const layout = selectedRadioMultiviewLayout();
+  const target = getInput(layout.input);
+  const layer = selectedRadioMultiviewLayer;
+
+  if (!target || !layer || !layout.layers.includes(layer)) {
+    setLog("Selecciona una posicion del multiview.");
+    return;
+  }
+
+  if (state.preview !== target.number) {
+    setLog("Pone este formato en Previo antes de ajustar la imagen.");
+    return;
+  }
+
+  const current = radioMultiviewPanValue(target.number, layer);
+  const direction = action === "left" ? -1 : action === "right" ? 1 : 0;
+  const next = action === "center"
+    ? 0
+    : Math.max(-RADIO_MV_PAN_LIMIT, Math.min(RADIO_MV_PAN_LIMIT, current + (direction * RADIO_MV_PAN_STEP)));
+
+  await callVmix({
+    Function: `SetLayer${layer}PanX`,
+    Input: target.number,
+    Value: next.toFixed(2)
+  });
+
+  saveRadioMultiviewPan(target.number, layer, next);
+  setLog(`${target.title} layer ${layer}: encuadre horizontal ${next.toFixed(2)}`);
+  renderRadioMultiview();
+}
+
+async function adjustRadioMultiviewCrop(action) {
+  const layout = selectedRadioMultiviewLayout();
+  const target = getInput(layout.input);
+  const layer = selectedRadioMultiviewLayer;
+
+  if (!target || !layer || !layout.layers.includes(layer)) {
+    setLog("Selecciona una posicion del multiview.");
+    return;
+  }
+
+  if (state.preview !== target.number) {
+    setLog("Pone este formato en Previo antes de ajustar los margenes.");
+    return;
+  }
+
+  const crop = radioMultiviewCropValue(target.number, layer);
+
+  if (action === "reset") {
+    crop.left = 0;
+    crop.right = 0;
+  } else if (action === "left-in") {
+    crop.left = Math.min(RADIO_MV_CROP_LIMIT, crop.left + RADIO_MV_CROP_STEP);
+  } else if (action === "left-out") {
+    crop.left = Math.max(0, crop.left - RADIO_MV_CROP_STEP);
+  } else if (action === "right-in") {
+    crop.right = Math.min(RADIO_MV_CROP_LIMIT, crop.right + RADIO_MV_CROP_STEP);
+  } else if (action === "right-out") {
+    crop.right = Math.max(0, crop.right - RADIO_MV_CROP_STEP);
+  }
+
+  await callVmix({
+    Function: `SetLayer${layer}CropX1`,
+    Input: target.number,
+    Value: crop.left.toFixed(2)
+  });
+  await callVmix({
+    Function: `SetLayer${layer}CropX2`,
+    Input: target.number,
+    Value: (1 - crop.right).toFixed(2)
+  });
+
+  saveRadioMultiviewCrop(target.number, layer, crop);
+  setLog(`${target.title} layer ${layer}: margenes ${Math.round(crop.left * 100)}% / ${Math.round(crop.right * 100)}%`);
+  renderRadioMultiview();
 }
 
 function refreshDirectSnapshots() {
@@ -1134,6 +1525,7 @@ async function updateRadioMultiviewPosition(positionIndex, cameraInput) {
 }
 
 async function runDirectCut(inputNumber) {
+  await prepareFiveCameraLogos(inputNumber);
   const direct = DIRECT_CUTS.find((item) => item.input === String(inputNumber));
   const layout = RADIO_LAYOUTS.find((item) => {
     const input = radioLayoutInput(item);
@@ -1503,12 +1895,23 @@ async function runZocalo(inputNumber, action) {
 
 async function runUtcOverlay(inputNumber, slot) {
   await callVmix({
-    Function: `OverlayInput${slot}`,
+    Function: `OverlayInput${slot}In`,
     Input: inputNumber
   });
 
   setLog(`Overlay ${slot}: ${getInput(inputNumber)?.title || `Input ${inputNumber}`}`);
   await refreshState();
+}
+
+async function runUtcOverlayGroup(groupId) {
+  const group = UTC_OVERLAY_GROUPS.find((item) => item.id === groupId);
+
+  if (!group) {
+    return;
+  }
+
+  const inputNumber = selectedUtcOverlayGroupInput(group);
+  await runUtcOverlay(inputNumber, group.slot);
 }
 
 async function turnOffUtcOverlay(slot) {
@@ -1521,12 +1924,16 @@ async function turnOffUtcOverlay(slot) {
 }
 
 async function selectLogo(logoPath) {
+  const currentOverlayLogo = activeLogoInput();
   localStorage.setItem(LOGO_STORAGE_KEY, logoPath);
   renderLogoList();
+  const nextLogoInput = currentLogoInput();
 
-  if (logoPath === MODO_SABADO_LOGO_PATH) {
-    setLog(`Logo seleccionado: ${logoLabel(logoPath)}`);
-    await refreshState();
+  if (logoPath === BUENA_QUIMICA_LOGO) {
+    if ([LOGO_INPUT, "179"].includes(currentOverlayLogo)) {
+      await toggleLogoOverlay("on");
+    }
+    setLog("Logo seleccionado: Buena Quimica");
     return;
   }
 
@@ -1537,7 +1944,57 @@ async function selectLogo(logoPath) {
     Value: logoPath
   });
 
+  if ([LOGO_INPUT, "179"].includes(currentOverlayLogo)) {
+    if (currentOverlayLogo === "179") {
+      await setLogoMultiviewLayers(true);
+    }
+    await callVmix({ Function: "OverlayInput3Off" });
+    await callVmix({
+      Function: "OverlayInput3In",
+      Input: nextLogoInput
+    });
+  }
+
   setLog(`Logo seleccionado: ${logoLabel(logoPath)}`);
+  await refreshState();
+}
+
+async function toggleLogoOverlay(action) {
+  if (action === "off") {
+    await callVmix({ Function: "OverlayInput3Off" });
+    const disabledLayers = await setLogoMultiviewLayers(false);
+    setLog(`Logo OFF: Overlay 3 y ${disabledLayers} armados`);
+    await refreshState();
+    return;
+  }
+
+  const targetInput = currentLogoInput();
+
+  if (targetInput === "179") {
+    await setLogoMultiviewLayers(false);
+    await callVmix({ Function: "OverlayInput3Off" });
+    await callVmix({ Function: "OverlayInput3In", Input: targetInput });
+    setLog("Logo ON: Buena Quimica");
+    await refreshState();
+    return;
+  }
+
+  await callVmix({
+    Function: "SetImage",
+    Input: LOGO_INPUT,
+    SelectedName: LOGO_FIELD,
+    Value: selectedLogoPath()
+  });
+
+  const enabledLayers = await setLogoMultiviewLayers(true);
+
+  await callVmix({ Function: "OverlayInput3Off" });
+  await callVmix({
+    Function: "OverlayInput3In",
+    Input: targetInput
+  });
+
+  setLog(`Logo ON: ${logoLabel(selectedLogoPath())} en Overlay 3 y ${enabledLayers} armados`);
   await refreshState();
 }
 
@@ -1587,6 +2044,12 @@ async function updateRadioMultiviewLayer(layer, sourceInput) {
     return;
   }
 
+  if (target.number === "12") {
+    for (const logo of logoMultiviewLayers().filter((item) => item.input === String(sourceInput))) {
+      await callVmix({ Function: "MultiViewOverlayOff", Input: logo.input, Value: logo.layer });
+    }
+  }
+
   await callVmix({
     Function: "SetMultiViewOverlay",
     Input: target.number,
@@ -1610,6 +2073,7 @@ async function previewRadioMultiviewLayout(layoutInput) {
   localStorage.setItem(RADIO_MV_SELECTED_KEY, target.number);
   renderRadioMultiview();
 
+  await prepareFiveCameraLogos(target.number);
   await callVmix({
     Function: "PreviewInput",
     Input: target.number
@@ -1632,6 +2096,7 @@ async function cutRadioMultiviewLayout(layoutInput) {
   localStorage.setItem(RADIO_MV_SELECTED_KEY, target.number);
   renderRadioMultiview();
 
+  await prepareFiveCameraLogos(target.number);
   await callVmix({
     Function: "CutDirect",
     Input: target.number
@@ -1687,6 +2152,7 @@ async function refreshState() {
     await syncPreviewExternal2();
     renderMasterMeter();
     renderDirectCuts();
+    renderResetButtons();
     renderInputButtons();
     renderMultiviewControls();
     renderRadioTest();
@@ -1775,6 +2241,46 @@ document.addEventListener("click", async (event) => {
       setLog(error.message);
     } finally {
       directCut.disabled = false;
+    }
+
+    return;
+  }
+
+  const radioMvRow = event.target.closest("[data-radio-mv-row]");
+
+  if (radioMvRow && !event.target.closest("select")) {
+    selectedRadioMultiviewLayer = radioMvRow.dataset.radioMvRow;
+    renderRadioMultiview();
+    return;
+  }
+
+  const radioMvPan = event.target.closest("[data-radio-mv-pan]");
+
+  if (radioMvPan) {
+    radioMvPan.disabled = true;
+
+    try {
+      await adjustRadioMultiviewPan(radioMvPan.dataset.radioMvPan);
+    } catch (error) {
+      setLog(error.message);
+    } finally {
+      radioMvPan.disabled = false;
+    }
+
+    return;
+  }
+
+  const radioMvCrop = event.target.closest("[data-radio-mv-crop]");
+
+  if (radioMvCrop) {
+    radioMvCrop.disabled = true;
+
+    try {
+      await adjustRadioMultiviewCrop(radioMvCrop.dataset.radioMvCrop);
+    } catch (error) {
+      setLog(error.message);
+    } finally {
+      radioMvCrop.disabled = false;
     }
 
     return;
@@ -1875,6 +2381,22 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
+  const utcOverlayGroup = event.target.closest("[data-utc-overlay-group]");
+
+  if (utcOverlayGroup) {
+    utcOverlayGroup.disabled = true;
+
+    try {
+      await runUtcOverlayGroup(utcOverlayGroup.dataset.utcOverlayGroup);
+    } catch (error) {
+      setLog(error.message);
+    } finally {
+      utcOverlayGroup.disabled = false;
+    }
+
+    return;
+  }
+
   const logoItem = event.target.closest("[data-logo-path]");
 
   if (logoItem) {
@@ -1886,6 +2408,22 @@ document.addEventListener("click", async (event) => {
       setLog(error.message);
     } finally {
       logoItem.disabled = false;
+    }
+
+    return;
+  }
+
+  const logoAction = event.target.closest("[data-logo-action]");
+
+  if (logoAction) {
+    logoAction.disabled = true;
+
+    try {
+      await toggleLogoOverlay(logoAction.dataset.logoAction);
+    } catch (error) {
+      setLog(error.message);
+    } finally {
+      logoAction.disabled = false;
     }
 
     return;
@@ -2067,9 +2605,18 @@ document.addEventListener("change", async (event) => {
     return;
   }
 
+  const utcOverlayGroupSelect = event.target.closest("[data-utc-overlay-group-select]");
+
+  if (utcOverlayGroupSelect) {
+    saveUtcOverlayGroupSelection(utcOverlayGroupSelect.dataset.utcOverlayGroupSelect, utcOverlayGroupSelect.value);
+    renderUtcOverlays();
+    return;
+  }
+
   const radioMvLayer = event.target.closest("[data-radio-mv-layer]");
 
   if (radioMvLayer) {
+    selectedRadioMultiviewLayer = radioMvLayer.dataset.radioMvLayer;
     radioMvLayer.disabled = true;
 
     try {

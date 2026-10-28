@@ -4,6 +4,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 
 const PORT = Number(process.env.PORT || 3000);
+const HOST = process.env.HOST || "0.0.0.0";
 const VMIX_HOST = process.env.VMIX_HOST || "127.0.0.1";
 const VMIX_PORT = Number(process.env.VMIX_PORT || 8088);
 const IS_REMOTE_VMIX = !["127.0.0.1", "localhost", "::1"].includes(VMIX_HOST.toLowerCase());
@@ -605,7 +606,8 @@ const server = http.createServer((req, res) => {
   serveStatic(req, res);
 });
 
-server.listen(PORT, () => {
-  console.log(`Panel vMix: http://localhost:${PORT}`);
+server.listen(PORT, HOST, () => {
+  const publicHost = HOST === "0.0.0.0" ? "localhost" : HOST;
+  console.log(`Panel vMix: http://${publicHost}:${PORT}`);
   console.log(`API vMix: http://${VMIX_HOST}:${VMIX_PORT}/api/`);
 });
