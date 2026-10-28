@@ -119,6 +119,10 @@ button:focus-visible {
   border-color: rgba(208, 162, 21, 0.65);
 }
 
+.tab-button[data-tab="amo-viajar"] {
+  border-color: rgba(18, 183, 106, 0.65);
+}
+
 .tab-button[data-tab="publicidades"] {
   border-color: rgba(240, 68, 56, 0.6);
 }
@@ -146,6 +150,11 @@ button:focus-visible {
 .tab-button[data-tab="multiview"].is-active {
   background: var(--preview);
   color: #111317;
+}
+
+.tab-button[data-tab="amo-viajar"].is-active {
+  background: #12b76a;
+  color: #07120d;
 }
 
 .tab-button[data-tab="publicidades"].is-active {
@@ -1053,6 +1062,114 @@ h3 {
   border-color: #f04438;
 }
 
+.amo-viajar-panel {
+  border-color: rgba(18, 183, 106, 0.55);
+}
+
+.amo-viajar-upload {
+  align-items: end;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(260px, 1fr) 180px;
+  max-width: 820px;
+}
+
+.amo-viajar-file {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.76rem;
+  font-weight: 900;
+  gap: 6px;
+  text-transform: uppercase;
+}
+
+.amo-viajar-file input {
+  background: #111317;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  min-height: 42px;
+  min-width: 0;
+  padding: 7px 10px;
+}
+
+.amo-viajar-file input::file-selector-button {
+  background: #20252e;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  margin-right: 10px;
+  padding: 6px 10px;
+}
+
+.amo-viajar-send {
+  background: #087443;
+  border-color: #12b76a;
+  font-weight: 900;
+  min-height: 42px;
+  padding: 0 16px;
+}
+
+.amo-viajar-send:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.amo-viajar-progress {
+  background: #20252e;
+  border-radius: 4px;
+  height: 9px;
+  margin-top: 12px;
+  max-width: 820px;
+  overflow: hidden;
+}
+
+.amo-viajar-progress-fill {
+  background: #12b76a;
+  height: 100%;
+  transition: width 120ms linear;
+  width: 0;
+}
+
+.amo-viajar-status {
+  color: var(--muted);
+  margin: 8px 0 0;
+}
+
+.amo-viajar-actions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(150px, 206px));
+  margin-top: 12px;
+}
+
+.amo-viajar-play,
+.amo-viajar-remove {
+  font-weight: 900;
+  min-height: 42px;
+  padding: 0 16px;
+}
+
+.amo-viajar-play {
+  background: #087443;
+  border-color: #12b76a;
+}
+
+.amo-viajar-remove {
+  background: #3b1820;
+  border-color: #f04438;
+}
+
+.amo-viajar-play:disabled,
+.amo-viajar-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
 .log {
   min-height: 22px;
 }
@@ -1115,6 +1232,14 @@ h3 {
   }
 
   .photo-add-row {
+    grid-template-columns: 1fr;
+  }
+
+  .amo-viajar-upload {
+    grid-template-columns: 1fr;
+  }
+
+  .amo-viajar-actions {
     grid-template-columns: 1fr;
   }
 

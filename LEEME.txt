@@ -1,0 +1,24 @@
+ACTUALIZACION AMO VIAJAR
+
+Esta actualizacion necesita dos elementos:
+
+1. server.js
+2. La carpeta public completa
+
+Instalacion en la PC de vMix:
+
+1. Cerrar el Panel La Brujula.
+2. Copiar server.js dentro de la carpeta Panel La Brujula y reemplazar el existente.
+3. Copiar la carpeta public completa y reemplazar la existente.
+4. Volver a iniciar el panel.
+5. En Chrome, actualizar con Ctrl+F5.
+
+Los MP4 cargados quedan guardados automaticamente en:
+
+Panel La Brujula\amo-viajar-media
+
+El archivo se agrega a vMix como Video. Su audio queda habilitado en Bus A y deshabilitado en Master.
+
+Play al aire reinicia el video, lo corta a Program y comienza la reproduccion.
+
+Borrar de vMix elimina el input y la copia guardada en amo-viajar-media. No elimina el MP4 original de la PC del operador.

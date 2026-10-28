@@ -56,6 +56,7 @@
         <button type="button" class="tab-button" data-tab="logos">Logos</button>
         <button type="button" class="tab-button" data-tab="fotos">Fotos</button>
         <button type="button" class="tab-button" data-tab="multiview">Multiview</button>
+        <button type="button" class="tab-button" data-tab="amo-viajar">Amo Viajar</button>
         <button type="button" class="tab-button" data-tab="publicidades">Publicidades</button>
       </nav>
 
@@ -172,6 +173,28 @@
           </div>
           <div class="mv-layout-tabs" id="radioMultiviewLayouts"></div>
           <div class="mv-grid" id="radioMultiviewGrid"></div>
+        </section>
+
+        <section class="control-section amo-viajar-panel" data-tab-panel="amo-viajar" aria-label="Amo Viajar" hidden>
+          <div class="section-title">
+            <h2>Amo Viajar</h2>
+            <span class="multiview-target">Audio Bus A</span>
+          </div>
+          <div class="amo-viajar-upload">
+            <label class="amo-viajar-file" for="amoViajarFile">
+              <span>Archivo MP4</span>
+              <input id="amoViajarFile" type="file" accept="video/mp4,.mp4">
+            </label>
+            <button type="button" class="amo-viajar-send" id="amoViajarSend" disabled>Cargar en vMix</button>
+          </div>
+          <div class="amo-viajar-progress" id="amoViajarProgress" hidden>
+            <div class="amo-viajar-progress-fill" id="amoViajarProgressFill"></div>
+          </div>
+          <p class="amo-viajar-status" id="amoViajarStatus">Selecciona un archivo MP4.</p>
+          <div class="amo-viajar-actions">
+            <button type="button" class="amo-viajar-play" id="amoViajarPlay" disabled>Play al aire</button>
+            <button type="button" class="amo-viajar-remove" id="amoViajarRemove" disabled>Borrar de vMix</button>
+          </div>
         </section>
 
         <section class="control-section sponsor-panel" data-tab-panel="publicidades" aria-label="Publicidades" hidden>
