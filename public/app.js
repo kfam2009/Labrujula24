@@ -178,6 +178,7 @@ const LOGO_LIST = [
   "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\ingenierowhite_logo.png",
   "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\peña_de_homero_logo.png",
   "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\irresponsables_logo.png",
+  "\\\\Desktop-al37edb\\fotos\\Logos Programas NO BORRAR\\hay_para_rato.png",
   MODO_SABADO_LOGO_PATH,
   BUENA_QUIMICA_LOGO
 ];
