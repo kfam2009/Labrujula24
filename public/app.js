@@ -69,6 +69,7 @@ const UTC_OVERLAYS = [
   { input: "160", label: "MGB", slot: "4" },
   { input: "163", label: "Pariz Clothes", slot: "4" },
   { input: "165", label: "Programa Puente BSAS", slot: "4" },
+  { input: "174", label: "Rhein Motor", slot: "4" },
   { input: "157", label: "Pintureria Tricolor", slot: "4" },
   { input: "153", label: "Sonia Gamero", slot: "4" }
 ];
@@ -77,13 +78,10 @@ const UTC_OVERLAY_GROUPS = [
     id: "fiat-171-173",
     label: "Corcel",
     slot: "4",
-    inputs: ["171", "172", "173", "177", "178"],
+    inputs: ["171", "177"],
     labels: {
       "171": "Fiat",
-      "172": "RAM",
-      "173": "BYD",
-      "177": "Financiacion",
-      "178": "Citroen"
+      "177": "Financiacion"
     }
   }
 ];
